@@ -1,10 +1,17 @@
+// IZP 2021/2020
+// 1. Project - Práce s textem
+// Verevkin Aleksandr (xverev00)
+
+
+//declaring needed libraries and constants
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdbool.h>
 
 #define password_max_length 101
 
-
+//function that check arguments
+//error in case of not supported argument
 int param_check(int argc, char* argv[]) {
 
     if (argc < 3) {
@@ -27,18 +34,56 @@ int param_check(int argc, char* argv[]) {
     return 0;
 }
 
-bool substrings_in_row(char buff[password_max_length], int param) {
+//function that finds lenght of given password
+int length(char buff[password_max_length]) {
     
-    if (param > 0) {
+    int password_len = 0;
 
-    while (fgets(buff, password_max_length, stdin) != NULL) {
-
-        printf("%s", buff);
-    }
-    }
-    return false;
+    for (int i = 0; buff[i] != '\n'; i++, password_len++);
+    
+    return password_len;
 }
 
+//function that finds, if password have same substrings
+bool substrings_in_row(char buff[password_max_length], int param) {
+    
+    //call lenght of password function
+    //and saves it in the variable
+    int str_len = length(buff);
+
+    //pass the password through the loops too find out
+    //if password has same substrings
+    for (int i = 0; i + param + 1 <= str_len; i++) {
+        
+        for (int j = i + 1; j + param <= str_len; j++) {
+            
+            if (buff[i] == buff[j]) {
+
+                int sameness = 1;
+
+                for (int s = i + 1, l = j + 1; sameness < param; s++, l++) {
+
+                    if (buff[s] == buff[l]) {
+
+                        sameness++;
+
+                        if (sameness == param) {
+                            
+                            //return false in case of same substings in the password
+                            return false;
+                        }
+
+                    } else { break; }
+                }
+            }
+        }
+    }
+    
+    //return true in case that password dont have same substrings
+    return true;
+}
+
+//function that finds, if password have same characters in the row
 bool same_in_row(char buff[password_max_length], int param, int level) {
 
     char same_char = '\0';
@@ -59,8 +104,10 @@ bool same_in_row(char buff[password_max_length], int param, int level) {
         }
     }
 
+    //check if password have same characters in a row
     if (counter != param) {
 
+        //check if its needed to go to the next level
         if (level > 3) {
 
             if (substrings_in_row(buff, param)) {
@@ -71,9 +118,11 @@ bool same_in_row(char buff[password_max_length], int param, int level) {
         
         } else { return true; }
     }
+
     return false;
 }
 
+//function that check if password have special symbols in it
 bool symbol(char buff[password_max_length]) {
 
     for (int i = 0; buff[i] != '\0'; i++) {
@@ -89,6 +138,7 @@ bool symbol(char buff[password_max_length]) {
     return false;
 }
 
+//function that check if password have number in it
 bool number(char buff[password_max_length]) {
 
     for (int i = 0; buff[i] != '\0'; i++) {
@@ -101,12 +151,14 @@ bool number(char buff[password_max_length]) {
     return false;
 }
 
+//function that check if password have small letter in it
+//and pass password further if needed
 bool small_letter(char buff[password_max_length], int param, int level) {
 
     for (int i = 0; buff[i] != '\0'; i++) {
 
         if ((buff[i] >= 'a') && (buff[i] <= 'z')) {
-                
+    
             if (level > 2 && param < 3) {
                     
                     if (same_in_row(buff, param, level)) {
@@ -153,8 +205,11 @@ bool small_letter(char buff[password_max_length], int param, int level) {
     return false;
 }
 
+//function that check if password have capital letter in it
 void capital_letter(char buff[password_max_length], int param, int level) {
 
+    //passing each password through the functions
+    //and print them if they are pass the conditions
     while (fgets(buff, password_max_length, stdin) != NULL) {
         
         for (int i = 0; buff[i] != '\0'; i++) {
@@ -171,6 +226,7 @@ void capital_letter(char buff[password_max_length], int param, int level) {
     }
 }
 
+//function that calculate and print out stats of the given passwords
 void stat(char buff[password_max_length]) {
 
     int hash_tab[128] = {0};
@@ -216,7 +272,9 @@ void stat(char buff[password_max_length]) {
     printf("Prumerna delka: %.1lf\n", (double)all_characters / (double)passwords_count);
 }
 
-void stat_check(char buff[password_max_length], char* argv[]) {
+//function that check if program have '--stats' in the arguments
+//and pass passwords to the statistics function if find out
+void stats_check(char buff[password_max_length], char* argv[]) {
 
     int i = 0;
     char str[8] = "--stats";
@@ -235,36 +293,24 @@ void stat_check(char buff[password_max_length], char* argv[]) {
     if (accept) stat(buff);
 }
 
+//main function
 int main(int argc, char* argv[]){
     
+    //check if program have right arguments
     if (param_check(argc, argv)) return 1;
 
     char buff[password_max_length];
 
+    //convert arguments to the integers
     int level = atoi(argv[1]);
     int param = atoi(argv[2]);
 
+    //pass paswords through the tests
     capital_letter(buff, param, level);
     
     if (argc > 3) {
         
-        stat_check(buff, argv);
-    }
-
-    char str[20] = "abcabc";
-    
-    for (int substr_len = 2; substr_len <= 6; substr_len++) {
-
-        for (int start = 0; start <= 6 - substr_len; start++) {
-
-            int end = start + substr_len - 1;
-
-            for (int substr_index = start; substr_index <= end; substr_index++) {
-                
-                printf("%c", str[substr_index]);
-            }
-            printf("\n");
-        }
+        stats_check(buff, argv);
     }
 
     return 0;
