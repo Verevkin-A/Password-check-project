@@ -8,29 +8,90 @@
 #include<stdlib.h>
 #include<stdbool.h>
 
-#define password_max_length 101
+#define password_max_length 103
+
+
+//check for "-l" switch in the arguments
+int prem_check_l(int argc, char* argv[]) {
+
+    for (int i = 1; i < argc; i++) {
+
+        if (argv[i][0] == '-') {
+
+            if((argv[i][1] == 'l')) {
+
+                if(argv[i][2] == '\0') {
+                    
+                    if (argv[i + 1] == NULL) {
+
+                        return -1;
+                    }
+
+                    return i + 1;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+//check for "-p" switch in the arguments
+int prem_check_p(int argc, char* argv[]) {
+
+    for (int i = 1; i < argc; i++) {
+
+        if (argv[i][0] == '-') {
+
+            if((argv[i][1] == 'p')) {
+
+                if(argv[i][2] == '\0') {
+
+                    if (argv[i + 1] == NULL) {
+
+                        return -1;
+                    }
+
+                    return i + 1;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+//funtion that check if password have right amount of symbols
+bool password_length_check(char buff[password_max_length]) {
+
+    for (int i = 0; buff[i] != '\0'; i++) {
+
+        if (i >= 101) {
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 //function that check arguments
 //error in case of not supported argument
-int param_check(int argc, char* argv[]) {
+int param_check(int level_arg, int param_arg, char* argv[]) {
 
-    if (argc < 3) {
+    if (level_arg != 0 && ((atoi(argv[level_arg]) < 1 || atoi(argv[level_arg]) > 4) || (atoi(argv[level_arg]) != atof(argv[level_arg])))) {
 
-        printf("Error: program start form:\n./pwcheck LEVEL PARAM [--stats]\n");
+        fprintf(stderr, "Error: LEVEL argument must be whole number in [1, 4] interval\n");
+        return 1;
+    }
+    
+    if (param_arg != 0 && ((atoi(argv[param_arg]) <= 0) || (atoi(argv[param_arg]) != atof(argv[param_arg])))) {
+
+        fprintf(stderr, "Error: PARAM argument must be positive, whole number\n");
         return 1;
     }
 
-    if ((atoi(argv[1]) < 1 || atoi(argv[1]) > 4) || (atoi(argv[1]) != atof(argv[1]))) {
-
-        printf("Error: LEVEL argument must be whole number in [1, 4] interval\n");
-        return 1;
-    }
-
-    if ((atoi(argv[2]) <= 0) ||(atoi(argv[2]) != atof(argv[2]))) {
-
-        printf("Error: PARAM argument must be positive, whole number\n");
-        return 1;
-    }
+    //return success code in case of no errors
     return 0;
 }
 
@@ -127,7 +188,8 @@ bool symbol(char buff[password_max_length]) {
 
     for (int i = 0; buff[i] != '\0'; i++) {
     
-        if (((buff[i] >= 33) && (buff[i] <= 47)) || 
+        //use ascii table symbol counting
+        if (((buff[i] >= 32) && (buff[i] <= 47)) || 
             ((buff[i] >= 58) && (buff[i] <= 64)) ||
             ((buff[i] >= 91) && (buff[i] <= 96)) ||
             ((buff[i] >= 123) && (buff[i] <= 126))) {
@@ -206,12 +268,29 @@ bool small_letter(char buff[password_max_length], int param, int level) {
 }
 
 //function that check if password have capital letter in it
-void capital_letter(char buff[password_max_length], int param, int level) {
+bool capital_letter(char buff[password_max_length], int param, int level, bool stats) {
+
+    //define variables for statistics counting
+    //define hash table to find unique characters
+    int hash_tab[128] = {0};
+    int min_len = password_max_length;
+    int all_characters = 0, passwords_count = 0, nchars = 0;
+    
 
     //passing each password through the functions
     //and print them if they are pass the conditions
     while (fgets(buff, password_max_length, stdin) != NULL) {
         
+        //check length of each password
+        //error in case of larger password
+        if (password_length_check(buff)) {
+
+            fprintf (stderr, "Error: password max length is 100 symbols\n");
+            return false;
+        }
+
+        //check if password have capital letter in it
+        //pass password to the next check function
         for (int i = 0; buff[i] != '\0'; i++) {
 
             if ((buff[i] >= 'A') && (buff[i] <= 'Z')) {
@@ -223,94 +302,142 @@ void capital_letter(char buff[password_max_length], int param, int level) {
                 }
             }
         }
-    }
-}
 
-//function that calculate and print out stats of the given passwords
-void stat(char buff[password_max_length]) {
+        //counting statistics of the passwords if needed
+        if (stats) {
 
-    int hash_tab[128] = {0};
+            int len = 0;
 
-    int nchars = 0;
-    int min_len = password_max_length;
-    
-    int all_characters = 0;
-    int passwords_count = 0;
+	        for (int i = 0; buff[i] != '\0'; i++) {
 
-    rewind(stdin);
+		        if (buff[i] != '\n') { 
 
-    while (fgets(buff, password_max_length, stdin) != NULL) {
+                    hash_tab[(int)buff[i]] = 1;
+                    len++;
+                }
+	        }
 
-        int len = 0;
+            if (len < min_len) {
 
-	    for (int i = 0; buff[i] != '\0'; i++) {
+                min_len = len;
+            } 
 
-		    if (buff[i] != '\n') { 
-
-                hash_tab[(int)buff[i]] = 1;
-                len++;
-            }
-	    }
-
-        if (len < min_len) {
-
-            min_len = len;
+            all_characters += len;
+            passwords_count++;
         }
 
-        all_characters += len;
-        passwords_count++;
     }
 
-    for (int i = 0; i < 128; i++) {
+    //print out statistics of the passwords if needed
+    if (stats) {
 
-		nchars += hash_tab[i];
-	}
+        for (int i = 0; i < 128; i++) {
 
-    printf("Statistika:\n");
-    printf("Ruznych znaku: %d\n", nchars);
-    printf("Minimalni delka: %d\n", min_len);
-    printf("Prumerna delka: %.1lf\n", (double)all_characters / (double)passwords_count);
+		    nchars += hash_tab[i];
+        }
+
+        //print out statistics
+        printf("Statistika:\n");
+        printf("Ruznych znaku: %d\n", nchars);
+        printf("Minimalni delka: %d\n", min_len);
+        printf("Prumerna delka: %.1lf\n", (double)all_characters / (double)passwords_count);
+    }
+
+    return true;
 }
 
 //function that check if program have '--stats' in the arguments
-//and pass passwords to the statistics function if find out
-void stats_check(char buff[password_max_length], char* argv[]) {
+bool stats_check(int argc, char* argv[]) {
 
-    int i = 0;
     char str[8] = "--stats";
-    bool accept = true;
+    bool accept = false;
 
-    while (argv[3][i] != '\0' || str[i] != '\0'){
+    for (int i = 1; i < argc; i++) {
 
-        if (argv[3][i] != str[i]) {
+        int j = 0;
+        accept = true;
 
-            accept = false;
-            break;
+        while (argv[i][j] != '\0' || str[j] != '\0') { 
+
+            if (argv[i][j] != str[j]) {
+
+                accept = false;
+                break;
+            }
+            j++;
         }
-        i++;
+        if (accept) break;
     }
 
-    if (accept) stat(buff);
+    if (accept) {
+
+        return true;
+
+    } else { return false; }
 }
 
 //main function
 int main(int argc, char* argv[]){
     
-    //check if program have right arguments
-    if (param_check(argc, argv)) return 1;
-
     char buff[password_max_length];
 
-    //convert arguments to the integers
-    int level = atoi(argv[1]);
-    int param = atoi(argv[2]);
+    int level, param;
+    int level_arg = prem_check_l(argc, argv);
+    int param_arg = prem_check_p(argc, argv);
+
+    //error handling
+    //not existing argument after switch
+    if (level_arg < 0 || param_arg < 0) {
+
+        fprintf (stderr, "Error: '-' switch pointing on not existing argument\n");
+        return 1;
+    }
+
+    //check if used argument "--stats"
+    bool stats = stats_check(argc, argv);
+
+    //check arguments for -l -p switches
+    if (argc == 1 || (argc == 2 && stats)) {
+
+        level = 1, param = 1;
+
+    } else if (level_arg || param_arg) {
+
+        if (param_check(level_arg, param_arg, argv)) return 1;
+
+        if (!level_arg) {
+
+            level = 1;
+            
+        } else { level = atoi(argv[level_arg]); }
+
+        if (!param_arg) {
+
+            param = 1;
+
+        } else { param = atoi(argv[param_arg]); }
+
+    } else {
+
+        if (argc != 3 && (argc != 4 || !stats)) {
+
+            fprintf(stderr, "Error: program start form:\n   ./pwcheck LEVEL PARAM [--stats]\nor ./pwcheck [-l LEVEL] [-p PARAM] [--stats]\n");
+            return 1;
+        }
+
+        //check if program have right arguments
+        if (param_check(1, 2, argv)) return 1;
+
+        //convert arguments to the integers
+        level = atoi(argv[1]);
+        param = atoi(argv[2]);
+
+    }
 
     //pass paswords through the tests
-    capital_letter(buff, param, level);
-    
-    if (argc > 3) {
-        
-        stats_check(buff, argv);
+    if (!(capital_letter(buff, param, level, stats))) {
+
+        return 1;
     }
 
     return 0;
