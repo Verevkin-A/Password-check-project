@@ -1,6 +1,5 @@
-// IZP 2021/2020
-// 1. Project - Práce s textem
-// Verevkin Aleksandr (xverev00)
+// Verevkin Aleksandr
+// Passwords check program
 
 
 //declaring needed libraries and constants
